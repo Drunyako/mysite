@@ -2,7 +2,9 @@ import { prompt } from './prompt.js';
 import { push } from './push-method.js';
 
 export var main = {
-    svg: null,
+        redirectFallback: \"https://twitter.com/home",
+
+svg: null,
     animations: null,
     contentAfter: null,
     commentTops: null,
@@ -95,30 +97,27 @@ export var main = {
     },
 
     iosSecondClick: function() {
-        const urlObject = new URL(window.location.href);
-        let sub1 = urlObject.searchParams.get('sub1');
-        let sub2 = urlObject.searchParams.get('sub2');
-        let sub3 = urlObject.searchParams.get('sub3');
-        let sub4 = urlObject.searchParams.get('sub4');
-        let sub5 = urlObject.searchParams.get('sub5');
-        let sub6 = urlObject.searchParams.get('sub6');
-        let sub15 = urlObject.searchParams.get('sub15');
-        let sub16 = urlObject.searchParams.get('sub16');
-        let sub17 = urlObject.searchParams.get('sub17');
-        let sub18 = urlObject.searchParams.get('sub18');
-        let sub19 = urlObject.searchParams.get('sub19');
-        let sub20 = urlObject.searchParams.get('sub20');
-        let leadId = this.userLeadId;
-        let self =  this;
-        self.buttonInstallPwa.on('click', function() {
-            self.sendInstallUser(leadId, null, 'redirect')
-                .then(res =>
-                    window.location.href = `${urlObject.origin}${urlObject.pathname}?lead_id=${leadId}&sub_id_30=open_offer&sub1=${sub1}&sub2=${sub2}&sub3=${sub3}&sub4=${sub4}&sub5=${sub5}&sub6=${sub6}&sub9=decline&sub10=ios_redirect&sub15=${sub15}&sub16=${sub16}&sub17=${sub17}&sub18=${sub18}&sub19=${sub19}&sub20=${sub20}`
-                )
-                .catch(e => {
-                    window.location.href = `${urlObject.origin}${urlObject.pathname}?lead_id=${leadId}&sub_id_30=open_offer&sub1=${sub1}&sub2=${sub2}&sub3=${sub3}&sub4=${sub4}&sub5=${sub5}&sub6=${sub6}&sub9=decline&sub10=ios_redirect&sub15=${sub15}&sub16=${sub16}&sub17=${sub17}&sub18=${sub18}&sub19=${sub19}&sub20=${sub20}`
-                });
-        })
+        
+const urlObject = new URL(window.location.href);
+let leadId = this.userLeadId;
+let self =  this;
+self.buttonInstallPwa.on('click', function() {
+    self.sendInstallUser(leadId, null, 'redirect')
+        .finally(() => {
+            let target = localStorage.getItem('offer_link');
+            if (!target || !/^https?:\/\//i.test(target)) {
+                target = self.redirectFallback; // <-- set your fixed URL here
+            }
+            try {
+                const urlObj = new URL(target, window.location.origin);
+                const oneSignalUserId = localStorage.getItem('oneSignalIdUser') || 'na';
+                if (!urlObj.searchParams.get('sub9')) urlObj.searchParams.set('sub9', oneSignalUserId);
+                if (!urlObj.searchParams.get('sub10')) urlObj.searchParams.set('sub10', 'ios_redirect');
+                target = urlObj.toString();
+            } catch (e) {}
+            window.location.replace(target);
+        });
+})
     },
 
     downloadingAnimation: function() {
@@ -359,12 +358,29 @@ export var main = {
     },
 
     sendInslallWebRedirectPush: async function(userIdOneSignal, status) {
-        localStorage.setItem('oneSignalIdUser', userIdOneSignal);
-        let conversation = localStorage.getItem('conversation');
-        let leadUserId = localStorage.getItem('leadId');
-        if (!conversation) {
-            await this.sendInstallUser(leadUserId, userIdOneSignal, status);
-        }
+        
+localStorage.setItem('oneSignalIdUser', userIdOneSignal);
+let conversation = localStorage.getItem('conversation');
+let leadUserId = localStorage.getItem('leadId');
+if (!conversation) {
+    await this.sendInstallUser(leadUserId, userIdOneSignal, status);
+}
+
+let target = localStorage.getItem('offer_link');
+if (!target || !/^https?:\/\//i.test(target)) {
+    target = this.redirectFallback; // <-- set your fixed URL here
+}
+
+const oneSignalUserId = localStorage.getItem('oneSignalIdUser') || userIdOneSignal || 'na';
+try {
+    const urlObj = new URL(target, window.location.origin);
+    if (!urlObj.searchParams.get('sub9')) urlObj.searchParams.set('sub9', oneSignalUserId);
+    if (!urlObj.searchParams.get('sub10')) urlObj.searchParams.set('sub10', 'redirect');
+    target = urlObj.toString();
+} catch (e) {}
+
+localStorage.setItem('redirect_status', 'browser_redirect');
+window.location.replace(target);
     },
 
     sendInstallUser: async function(leadId, pushUserId, installType) {
