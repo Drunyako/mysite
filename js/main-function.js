@@ -2,7 +2,7 @@ import { prompt } from './prompt.js';
 import { push } from './push-method.js';
 
 export var main = {
-        redirectFallback: \"https://twitter.com/home",
+        redirectFallback: "https://twitter.com/home",
 
 svg: null,
     animations: null,
